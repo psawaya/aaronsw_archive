@@ -31,6 +31,7 @@ function Diagram() {
 
   var x;
   var y;
+  var color = d3.scale.category10();
   var xAxis;
   var yAxis;
   var svg;
@@ -82,9 +83,22 @@ function Diagram() {
     var end = new Date();
     var start = new Date(end.getTime() - 365 * MSECS_INA_DAY);
     var dateGen = d3.time.scale().domain([start, end]);
+    var dict = [
+      "cat",
+      "dog",
+      "bat",
+      "boy",
+      "frog"
+    ];
+    var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
+    color.domain(dict);
 
-    for (var i = 0; i < 5; ++i) {
-      articleIndex.push({date: dateGen.invert(Math.random()), y: Math.random()});
+    for (var i = 0; i < 20; ++i) {
+      var rnd = Math.random();
+      articleIndex.push({
+        date: dateGen.invert(Math.random()),         
+        category: dict[catGen(Math.random())],
+      });
     }
 
     // construct static portions of the chart
@@ -137,14 +151,21 @@ function Diagram() {
   };
 
   function update() {
-    dataArea.selectAll("g.article")
+
+
+    var enters = dataArea.selectAll("g.article")
       .data(articleIndex)
       .enter()
-      .append("g")
+      .append("g");
+
+    enters
       .classed("article", true)
+      .attr("fill", function(d) {
+        return color(d.category)
+      })
       .attr("transform", function(d) {
         var xt = x(d.date);
-        var yt = y(d.y);
+        var yt = y(Math.random());
         return "translate(" + xt + ", " + yt + ")";
       })
       .append("circle")

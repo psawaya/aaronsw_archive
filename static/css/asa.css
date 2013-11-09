@@ -24,6 +24,6 @@ body {
 
 .article {
   opacity: 0.5;
-  fill: red;
+  /* fill: red; */
 }
  

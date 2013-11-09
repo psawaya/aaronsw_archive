@@ -21,4 +21,9 @@ body {
   stroke: #000;
   shape-rendering: crispEdges;
 }
+
+.article {
+  opacity: 0.5;
+  fill: red;
+}
  

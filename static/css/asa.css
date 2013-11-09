@@ -1,0 +1,46 @@
+* {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: auto;
+  padding: auto;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font: 10px sans-serif;
+}
+ 
+.axis line,
+.axis path {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+ 
+.arrow {
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+ 
+.marginArea,
+.dataArea {
+  shape-rendering: crispEdges;
+}
+
+svg {
+  background: lightblue;
+} 
+
+.marginArea {
+  /* fill: lightgreen; */
+  fill: none;
+  /* stroke-width: 2; */
+  stroke: black;
+}
+ 
+.dataArea {
+  fill: red;
+  /* stroke-width: 2; */
+  stroke: black;
+}

@@ -11,6 +11,10 @@ body {
   font: 10px sans-serif;
 }
  
+.marginArea,
+.dataArea {
+}
+
 .axis line,
 .axis path {
   fill: none;
@@ -18,29 +22,3 @@ body {
   shape-rendering: crispEdges;
 }
  
-.arrow {
-  stroke: #000;
-  stroke-width: 1.5px;
-}
- 
-.marginArea,
-.dataArea {
-  shape-rendering: crispEdges;
-}
-
-svg {
-  background: lightblue;
-} 
-
-.marginArea {
-  /* fill: lightgreen; */
-  fill: none;
-  /* stroke-width: 2; */
-  stroke: black;
-}
- 
-.dataArea {
-  fill: red;
-  /* stroke-width: 2; */
-  stroke: black;
-}

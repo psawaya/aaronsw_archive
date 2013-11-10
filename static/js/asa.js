@@ -6,6 +6,8 @@ function Diagram() {
   var MSECS_INA_HOUR = 60 * MSECS_INA_MIN;
   var MSECS_INA_DAY = 24 * MSECS_INA_HOUR;
   var MAX_RADIUS = 20;
+  var CLUSTER_FACTOR = 0.99;
+  var DATE_FACTOR = 0.8;
 
   // padding and margin vaues
 
@@ -42,6 +44,9 @@ function Diagram() {
   // the article index
 
   var articleIndex = [];
+  var force = d3.layout.force()
+    .charge(-50);
+  var catGroups;
 
   // when document ready, initialize the chart
 
@@ -93,7 +98,7 @@ function Diagram() {
     var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
     color.domain(dict);
 
-    for (var i = 0; i < 20; ++i) {
+    for (var i = 0; i < 200; ++i) {
       var rnd = Math.random();
       articleIndex.push({
         date: dateGen.invert(Math.random()),         
@@ -105,6 +110,7 @@ function Diagram() {
 
     construct();
     update();
+    force.start();
   }
 
   // establish all chart size related elements
@@ -132,6 +138,7 @@ function Diagram() {
 
     xAxis.scale(x);
     yAxis.scale(y);
+    force.size([width, height]);
   }
 
   // construt ontime chart specific elements
@@ -148,11 +155,15 @@ function Diagram() {
       .attr("class", "y axis")
       .attr("transform", "translate(" + width + ",0)")
       .call(yAxis);
+
+    force.nodes(articleIndex);
+
+    catGroups = d3.nest()
+      .key(function(d) {return d.category;})
+      .map(articleIndex, d3.map);
   };
 
   function update() {
-
-
     var enters = dataArea.selectAll("g.article")
       .data(articleIndex)
       .enter()
@@ -163,13 +174,40 @@ function Diagram() {
       .attr("fill", function(d) {
         return color(d.category)
       })
-      .attr("transform", function(d) {
-        var xt = x(d.date);
-        var yt = y(Math.random());
-        return "translate(" + xt + ", " + yt + ")";
-      })
       .append("circle")
       .attr("r", MAX_RADIUS);
+
+    force.on("tick", function(e) {
+
+      var k = 6 * e.alpha;
+      Object.keys(catGroups).forEach(function(cat) {
+        var members = catGroups[cat];
+        var cx = 0;
+        var cy = 0;
+        members.forEach(function(member) {
+          cx += member.x;
+          cy += member.y;
+        });
+
+        cx /= members.length;
+        cy /= members.length;
+
+        members.forEach(function(member) {
+          member.x = x(member.date) * DATE_FACTOR + cx * (1 - DATE_FACTOR);
+          member.y = member.y * CLUSTER_FACTOR + cy * (1 - CLUSTER_FACTOR);
+        });
+      });
+
+    // console.log("catGroups", catGroups);
+
+
+      d3.selectAll("g.article")
+        .attr("transform", function(d) {
+          var xt = d.x;
+          var yt = d.y;
+          return "translate(" + xt + ", " + yt + ")";
+        });
+    });
   }
 }
 

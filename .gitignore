@@ -1,6 +1,7 @@
 scripts/posts/*
 venv/*
 .DS_Store
+data/aaronsw.enex
 
 *.py[cod]
 

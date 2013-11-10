@@ -6,9 +6,9 @@ function Diagram() {
   var MSECS_INA_HOUR = 60 * MSECS_INA_MIN;
   var MSECS_INA_DAY = 24 * MSECS_INA_HOUR;
   var MAX_RADIUS = 20;
-  var DATE_FACTOR = 1;
-  var SIZE_FACTOR = 1;
-  var CHARGE = -3;
+  var DATE_FACTOR = 0.3;
+  var SIZE_FACTOR = 0.3;
+  var CHARGE = -20;
 
   // padding and margin vaues
 
@@ -234,32 +234,47 @@ function Diagram() {
         return color(d.category)
       })
       .append("circle")
-      .attr("r", function(d) {return area(d.size)});
+      .attr("r", function(d) {d.radius = area(d.size); return d.radius});
     
 
     force.on("tick", function(e) {
 
-      var k = 6 * e.alpha;
-      Object.keys(catGroups).forEach(function(cat) {
-        var members = catGroups[cat];
-        var cx = 0;
-        var cy = 0;
-        members.forEach(function(member) {
-          cx += member.x;
-          cy += member.y;
+      var CLUSTER = true;
+      var COLLISION = false;
+
+      if (CLUSTER) {
+        var k = .08 * e.alpha;
+        Object.keys(catGroups).forEach(function(cat) {
+          var members = catGroups[cat];
+          var cx = 0;
+          var cy = 0;
+          members.forEach(function(member) {
+            cx += member.x;
+            cy += member.y;
+          });
+
+          cx /= members.length;
+          cy /= members.length;
+
+          members.forEach(function(member) {
+            // member.x = x(member.date) * DATE_FACTOR + cx * (1 - DATE_FACTOR);
+            // member.y = y(member.size) * SIZE_FACTOR + cy * (1 - SIZE_FACTOR);
+            member.x += k * (cx - member.x);
+            member.y += k * (cy - member.y);
+          });
         });
+      }
 
-        cx /= members.length;
-        cy /= members.length;
+      if (COLLISION) {
+        var q = d3.geom.quadtree(articleIndex);
 
-        members.forEach(function(member) {
-          member.x = x(member.date) * DATE_FACTOR + cx * (1 - DATE_FACTOR);
-          member.y = y(member.size) * SIZE_FACTOR + cy * (1 - SIZE_FACTOR);
-        });
-      });
+        var i = 0;
+        var n = articleIndex.length;
 
-    // console.log("catGroups", catGroups);
-
+        while (++i < n) {
+          q.visit(collide(articleIndex[i]));
+        }
+      }
 
       d3.selectAll("g.article")
         .attr("transform", function(d) {
@@ -268,6 +283,35 @@ function Diagram() {
           return "translate(" + xt + ", " + yt + ")";
         });
     });
+  }
+
+  function collide(node) {
+    var r = node.radius + 16;
+    var nx1 = node.x - r;
+    var nx2 = node.x + r;
+    var ny1 = node.y - r;
+    var ny2 = node.y + r;
+
+    return function(quad, x1, y1, x2, y2) {
+      if (quad.point && (quad.point !== node)) {
+        var x = node.x - quad.point.x;
+        var y = node.y - quad.point.y;
+        var l = Math.sqrt(x * x + y * y);
+        var r = node.radius + quad.point.radius;
+
+        if (l < r) {
+          l = (l - r) / l * .1;
+          node.x -= x *= l;
+          node.y -= y *= l;
+          quad.point.x += x;
+          quad.point.y += y;
+        }
+      }
+      return x1 > nx2
+        || x2 < nx1
+        || y1 > ny2
+        || y2 < ny1;
+    };
   }
 }
 

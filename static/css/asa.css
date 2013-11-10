@@ -22,6 +22,11 @@ body {
   shape-rendering: crispEdges;
 }
 
+.axis {
+  cursor: pointer;
+}
+
+
 .article {
   opacity: 0.5;
   /* fill: red; */

@@ -7,11 +7,15 @@ function Diagram() {
   var MSECS_INA_DAY = 24 * MSECS_INA_HOUR;
   var MIN_RADIUS = 2;
   var MAX_RADIUS = 20;
-  var DATE_FACTOR = 0.01;
+  var DATE_FACTOR = 0.1;
   var SIZE_FACTOR = 0;
-  var CATEGORY_FACTOR = 1;
-  var COLLISION_FACTOR = 0.2;
-  var CHARGE = -40;
+  var CATEGORY_FACTOR = 0.2;
+  var COLLISION_FACTOR = 0.05;
+  var CHARGE = -50;
+
+  // factors
+
+  var dateFactor = 0;
 
   // padding and margin vaues
 
@@ -168,9 +172,8 @@ function Diagram() {
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
       .on("click", function(d) {
-        DATE_FACTOR = (DATE_FACTOR == 0) ? 0.01 : 0;
-        console.log("DATE_FACTOR", DATE_FACTOR);
-        force.restart();
+        dateFactor = (dateFactor) ? 0 : DATE_FACTOR;
+        force.resume();
       })
       .call(xAxis);
 
@@ -241,7 +244,7 @@ function Diagram() {
           members.forEach(function(member) {
             var clx = member.x + k * (category.x - member.x);
             var cly = member.y + k * (category.y - member.y);
-            member.x = x(member.date) * DATE_FACTOR + clx * (1 - DATE_FACTOR);
+            member.x = x(member.date) * dateFactor + clx * (1 - dateFactor);
             member.y = y(member.size) * SIZE_FACTOR + cly * (1 - SIZE_FACTOR);
           });
         });
@@ -272,7 +275,7 @@ function Diagram() {
   }
 
   function collide(node) {
-    var r = node.radius + 16;
+    var r = node.radius;
     var nx1 = node.x - r;
     var nx2 = node.x + r;
     var ny1 = node.y - r;

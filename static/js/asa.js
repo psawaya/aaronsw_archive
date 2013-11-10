@@ -6,11 +6,14 @@ function Diagram() {
   var MSECS_INA_HOUR = 60 * MSECS_INA_MIN;
   var MSECS_INA_DAY = 24 * MSECS_INA_HOUR;
   var MAX_RADIUS = 20;
+  var DATE_FACTOR = 1;
+  var SIZE_FACTOR = 1;
+  var CHARGE = -3;
 
   // padding and margin vaues
 
   var padding = {top: 10, right: 10, bottom: 10, left: 10};
-  var margin = {top: 25, right: 25, bottom: 25, left: 25};
+  var margin = {top: 25, right: 50, bottom: 20, left: 25};
 
   // svg region
 
@@ -27,12 +30,17 @@ function Diagram() {
   var width;
   var height;
 
+  // create scales and axes
+
+  var x = d3.time.scale();
+  var y = d3.scale.pow().exponent(.5);
+  var area = d3.scale.pow().exponent(.2).range([MAX_RADIUS, 3]);
+  var xAxis = d3.svg.axis();
+  var yAxis = d3.svg.axis().orient("right");
+  var color = d3.scale.category10();
+
   // standard diagram elements
 
-  var x;
-  var y;
-  var xAxis;
-  var yAxis;
   var svg;
   var marginArea;
   var dataArea;
@@ -41,6 +49,9 @@ function Diagram() {
   // the article index
 
   var articleIndex = [];
+  var force = d3.layout.force()
+    .charge(CHARGE);
+  var catGroups;
 
   // when document ready, initialize the chart
 
@@ -59,13 +70,6 @@ function Diagram() {
     marginArea = svg.append("g").classed("marginArea", true);
     dataArea = svg.append("g").classed("dataArea", true);
 
-    // create scales and axes
-
-    x = d3.time.scale()
-    y = d3.scale.linear();
-    xAxis = d3.svg.axis();
-    yAxis = d3.svg.axis().orient("right");
-
     // size the chart
 
     size();
@@ -77,20 +81,88 @@ function Diagram() {
 
   function load() {
 
-    // generate random data
+    d3.json("/api/posts", function(data) {
 
-    var end = new Date();
-    var start = new Date(end.getTime() - 365 * MSECS_INA_DAY);
-    var dateGen = d3.time.scale().domain([start, end]);
+      d3.tsv("/static/data/en.txt", function(words) {
+        wordFrequency = {};
+        words.forEach(function(word) {
+          wordFrequency[word.word] = word.cnt;
+        });
 
-    for (var i = 0; i < 5; ++i) {
-      articleIndex.push({date: dateGen.invert(Math.random()), y: Math.random()});
-    }
+        console.log("data", data);
+        var dict = [
+          "cat",
+          "dog",
+          "bat",
+          "boy",
+          "frog"
+        ];
+        var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
+
+        var tokenRegex = /\w{5,}/g;
+        var categories = {};
+
+        Object.keys(data).forEach(function(key) {
+          var article = data[key];
+
+          var titleWords = article["post_content:"].match(tokenRegex) || [];
+          var categoryScore = Infinity;
+          article.category = "";
+
+          titleWords.forEach(function(word) {
+
+            word = word.toLowerCase();
+            if (word[word.length - 1] == "s") word = word.substring(0, word.length - 1);
+
+            var score = wordFrequency[word] || -word.length;
+            if (score < categoryScore) {
+              article.category = word;
+              categoryScore = score;
+            }
+          });
+
+          categories[article.category] = categories[article.category] ? categories[article.category] + 1 : 1;
+
+          article.date = new Date(article.time * 1000);
+          article.category = dict[catGen(Math.random())];
+          article.size = article["post_content:"].length;
+          articleIndex.push(article);
+        });
+
+        console.log("categories", categories);
+
+        construct();
+        update();
+        force.start();
+      });
+    });
+
+
+    // // generate random data
+
+    // var end = new Date();
+    // var start = new Date(end.getTime() - 365 * MSECS_INA_DAY);
+    // var dateGen = d3.time.scale().domain([start, end]);
+    // var dict = [
+    //   "cat",
+    //   "dog",
+    //   "bat",
+    //   "boy",
+    //   "frog"
+    // ];
+    // var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
+    // color.domain(dict);
+
+    // for (var i = 0; i < 200; ++i) {
+    //   var rnd = Math.random();
+    //   articleIndex.push({
+    //     date: dateGen.invert(Math.random()),         
+    //     category: dict[catGen(Math.random())],
+    //   });
+    // }
 
     // construct static portions of the chart
 
-    construct();
-    update();
   }
 
   // establish all chart size related elements
@@ -118,12 +190,16 @@ function Diagram() {
 
     xAxis.scale(x);
     yAxis.scale(y);
+    force.size([width, height]);
   }
 
   // construt ontime chart specific elements
 
   function construct() {
     x.domain(d3.extent(articleIndex, function(d) {return d.date}));
+    y.domain(d3.extent(articleIndex, function(d) {return d.size}));
+    area.domain(d3.extent(articleIndex, function(d) {return d.size}));
+    
 
     dataArea.append("g")
       .attr("class", "x axis")
@@ -134,21 +210,64 @@ function Diagram() {
       .attr("class", "y axis")
       .attr("transform", "translate(" + width + ",0)")
       .call(yAxis);
+
+    force.nodes(articleIndex);
+
+    catGroups = d3.nest()
+      .key(function(d) {return d.category;})
+      .map(articleIndex, d3.map);
   };
 
   function update() {
-    dataArea.selectAll("g.article")
+    var enters = dataArea.selectAll("g.article")
       .data(articleIndex)
       .enter()
-      .append("g")
+      .append("g");
+
+    enters
+      .append("title")
+      .text(function(d) {return d.post_title});
+
+    enters
       .classed("article", true)
-      .attr("transform", function(d) {
-        var xt = x(d.date);
-        var yt = y(d.y);
-        return "translate(" + xt + ", " + yt + ")";
+      .attr("fill", function(d) {
+        return color(d.category)
       })
       .append("circle")
-      .attr("r", MAX_RADIUS);
+      .attr("r", function(d) {return area(d.size)});
+    
+
+    force.on("tick", function(e) {
+
+      var k = 6 * e.alpha;
+      Object.keys(catGroups).forEach(function(cat) {
+        var members = catGroups[cat];
+        var cx = 0;
+        var cy = 0;
+        members.forEach(function(member) {
+          cx += member.x;
+          cy += member.y;
+        });
+
+        cx /= members.length;
+        cy /= members.length;
+
+        members.forEach(function(member) {
+          member.x = x(member.date) * DATE_FACTOR + cx * (1 - DATE_FACTOR);
+          member.y = y(member.size) * SIZE_FACTOR + cy * (1 - SIZE_FACTOR);
+        });
+      });
+
+    // console.log("catGroups", catGroups);
+
+
+      d3.selectAll("g.article")
+        .attr("transform", function(d) {
+          var xt = d.x;
+          var yt = d.y;
+          return "translate(" + xt + ", " + yt + ")";
+        });
+    });
   }
 }
 

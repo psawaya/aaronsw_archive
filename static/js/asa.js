@@ -11,7 +11,8 @@ function Diagram() {
   var SIZE_FACTOR = 0;
   var CATEGORY_FACTOR = 0.2;
   var COLLISION_FACTOR = 0.05;
-  var CHARGE = -50;
+  var CHARGE = -40;
+  var LINK_STRENGHT = 0.09;
 
   // factors
 
@@ -53,11 +54,20 @@ function Diagram() {
   var dataArea;
   var defs;
 
+  // layers
+
+  var linkLayer;
+  var nodeLayer;
+  var tagLayer;
+
   // the article index
 
   var articleIndex = [];
+  var links = [];
   var force = d3.layout.force()
-    .charge(CHARGE);
+    .charge(CHARGE)
+    .linkStrength(LINK_STRENGHT);
+
   var catGroups;
 
   // when document ready, initialize the chart
@@ -76,6 +86,9 @@ function Diagram() {
     defs = svg.append("defs");
     marginArea = svg.append("g").classed("marginArea", true);
     dataArea = svg.append("g").classed("dataArea", true);
+    linkLayer = dataArea.append("g");
+    nodeLayer = dataArea.append("g");
+    tagLayer = dataArea.append("g");
 
     // size the chart
 
@@ -124,6 +137,16 @@ function Diagram() {
           article.size = article["post_content"].length;
           articleIndex.push(article);
         });
+
+        links = [];
+        var ra = d3.scale.linear().rangeRound([0, articleIndex.length - 1]);
+        for (var i = 0; i < 30; ++i) {
+          var a1 = articleIndex[ra(Math.random())];
+          var a2 = articleIndex[ra(Math.random())];
+          if (a1 != a2) {
+            links.push({source: a1, target: a2});
+          }
+        }
 
         construct();
         update();
@@ -183,6 +206,7 @@ function Diagram() {
       .call(yAxis);
 
     force.nodes(articleIndex);
+    force.links(links);
 
     catGroups = d3.nest()
       .key(function(d) {return d.category;})
@@ -192,7 +216,14 @@ function Diagram() {
   };
 
   function update() {
-    var enters = dataArea.selectAll("g.article")
+
+    linkLayer.selectAll("line.link")
+      .data(links)
+      .enter()
+      .append("line")
+      .classed("link", true);
+   
+    var enters = nodeLayer.selectAll("g.article")
       .data(articleIndex)
       .enter()
       .append("g");
@@ -214,7 +245,7 @@ function Diagram() {
       return {name: name}
     });
 
-    dataArea.selectAll("text.category")
+    tagLayer.selectAll("text.category")
       .data(categoryData)
       .enter()
       .append("text")
@@ -271,6 +302,12 @@ function Diagram() {
           var yt = d.y;
           return "translate(" + xt + ", " + yt + ")";
         });
+
+      d3.selectAll("line.link")
+        .attr("x1", function(d) {return d.source.x})
+        .attr("y1", function(d) {return d.source.y})
+        .attr("x2", function(d) {return d.target.x})
+        .attr("y2", function(d) {return d.target.y});
     });
   }
 

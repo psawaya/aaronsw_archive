@@ -5,10 +5,13 @@ function Diagram() {
   var MSECS_INA_MIN = 60 * 1000;
   var MSECS_INA_HOUR = 60 * MSECS_INA_MIN;
   var MSECS_INA_DAY = 24 * MSECS_INA_HOUR;
+  var MIN_RADIUS = 2;
   var MAX_RADIUS = 20;
-  var DATE_FACTOR = 0.3;
-  var SIZE_FACTOR = 0.3;
-  var CHARGE = -20;
+  var DATE_FACTOR = 0.01;
+  var SIZE_FACTOR = 0;
+  var CATEGORY_FACTOR = 1;
+  var COLLISION_FACTOR = 0.2;
+  var CHARGE = -40;
 
   // padding and margin vaues
 
@@ -34,7 +37,7 @@ function Diagram() {
 
   var x = d3.time.scale();
   var y = d3.scale.pow().exponent(.5);
-  var area = d3.scale.pow().exponent(.2).range([MAX_RADIUS, 3]);
+  var area = d3.scale.pow().exponent(.1).range([MAX_RADIUS, MIN_RADIUS]);
   var xAxis = d3.svg.axis();
   var yAxis = d3.svg.axis().orient("right");
   var color = d3.scale.category10();
@@ -95,7 +98,11 @@ function Diagram() {
           "dog",
           "bat",
           "boy",
-          "frog"
+          "frog",
+          "apple",
+          "banana",
+          "orange",
+          "bear",
         ];
         var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
 
@@ -104,65 +111,21 @@ function Diagram() {
 
         Object.keys(data).forEach(function(key) {
           var article = data[key];
-
-          var titleWords = article["post_content"].match(tokenRegex) || [];
-          var categoryScore = Infinity;
-          article.category = "";
-
-          titleWords.forEach(function(word) {
-
-            word = word.toLowerCase();
-            if (word[word.length - 1] == "s") word = word.substring(0, word.length - 1);
-
-            var score = wordFrequency[word] || -word.length;
-            if (score < categoryScore) {
-              article.category = word;
-              categoryScore = score;
-            }
-          });
-
-          categories[article.category] = categories[article.category] ? categories[article.category] + 1 : 1;
+          if (article.tags)
+            console.log("article.tags", article.tags);
 
           article.date = new Date(article.time * 1000);
           article.category = dict[catGen(Math.random())];
+          //article.tags.length > 0 ? article.tags[0] : "misc";
           article.size = article["post_content"].length;
           articleIndex.push(article);
         });
-
-        console.log("categories", categories);
 
         construct();
         update();
         force.start();
       });
     });
-
-
-    // // generate random data
-
-    // var end = new Date();
-    // var start = new Date(end.getTime() - 365 * MSECS_INA_DAY);
-    // var dateGen = d3.time.scale().domain([start, end]);
-    // var dict = [
-    //   "cat",
-    //   "dog",
-    //   "bat",
-    //   "boy",
-    //   "frog"
-    // ];
-    // var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
-    // color.domain(dict);
-
-    // for (var i = 0; i < 200; ++i) {
-    //   var rnd = Math.random();
-    //   articleIndex.push({
-    //     date: dateGen.invert(Math.random()),         
-    //     category: dict[catGen(Math.random())],
-    //   });
-    // }
-
-    // construct static portions of the chart
-
   }
 
   // establish all chart size related elements
@@ -204,6 +167,11 @@ function Diagram() {
     dataArea.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
+      .on("click", function(d) {
+        DATE_FACTOR = (DATE_FACTOR == 0) ? 0.01 : 0;
+        console.log("DATE_FACTOR", DATE_FACTOR);
+        force.restart();
+      })
       .call(xAxis);
 
     dataArea.append("g")
@@ -216,6 +184,8 @@ function Diagram() {
     catGroups = d3.nest()
       .key(function(d) {return d.category;})
       .map(articleIndex, d3.map);
+
+    console.log("catGroups", catGroups);
   };
 
   function update() {
@@ -235,17 +205,29 @@ function Diagram() {
       })
       .append("circle")
       .attr("r", function(d) {d.radius = area(d.size); return d.radius});
-    
 
+
+    var categoryData = Object.keys(catGroups).map(function(name) {
+      return {name: name}
+    });
+
+    dataArea.selectAll("text.category")
+      .data(categoryData)
+      .enter()
+      .append("text")
+      .classed("category", true)
+      .attr("text-anchor", "middle")
+      .text(function(d) {return d.name});
+    
     force.on("tick", function(e) {
 
       var CLUSTER = true;
-      var COLLISION = false;
+      var COLLISION = true;
 
       if (CLUSTER) {
-        var k = .08 * e.alpha;
-        Object.keys(catGroups).forEach(function(cat) {
-          var members = catGroups[cat];
+        var k = CATEGORY_FACTOR * e.alpha;
+        categoryData.forEach(function(category) {
+          var members = catGroups[category.name];
           var cx = 0;
           var cy = 0;
           members.forEach(function(member) {
@@ -253,14 +235,14 @@ function Diagram() {
             cy += member.y;
           });
 
-          cx /= members.length;
-          cy /= members.length;
+          category.x = cx / members.length;
+          category.y = cy / members.length;
 
           members.forEach(function(member) {
-            // member.x = x(member.date) * DATE_FACTOR + cx * (1 - DATE_FACTOR);
-            // member.y = y(member.size) * SIZE_FACTOR + cy * (1 - SIZE_FACTOR);
-            member.x += k * (cx - member.x);
-            member.y += k * (cy - member.y);
+            var clx = member.x + k * (category.x - member.x);
+            var cly = member.y + k * (category.y - member.y);
+            member.x = x(member.date) * DATE_FACTOR + clx * (1 - DATE_FACTOR);
+            member.y = y(member.size) * SIZE_FACTOR + cly * (1 - SIZE_FACTOR);
           });
         });
       }
@@ -275,6 +257,10 @@ function Diagram() {
           q.visit(collide(articleIndex[i]));
         }
       }
+
+      d3.selectAll("text.category")
+        .attr("x", function(d) {return d.x})
+        .attr("y", function(d) {return d.y});
 
       d3.selectAll("g.article")
         .attr("transform", function(d) {
@@ -300,7 +286,7 @@ function Diagram() {
         var r = node.radius + quad.point.radius;
 
         if (l < r) {
-          l = (l - r) / l * .1;
+          l = (l - r) / l * COLLISION_FACTOR;
           node.x -= x *= l;
           node.y -= y *= l;
           quad.point.x += x;

@@ -44,7 +44,7 @@ for dirname in os.listdir('posts'):
         "time": mktime(post_time.timetuple()),
         "postid": postid,
         "post_title": post_title,
-        "post_content:": post_content
+        "post_content": post_content
     }
 
 open('blog_posts.json','w').write(json.dumps(blog_posts))

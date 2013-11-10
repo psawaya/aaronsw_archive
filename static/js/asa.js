@@ -82,27 +82,59 @@ function Diagram() {
   function load() {
 
     d3.json("/api/posts", function(data) {
-      console.log("data", data);
-      var dict = [
-        "cat",
-        "dog",
-        "bat",
-        "boy",
-        "frog"
-      ];
-      var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
 
-      Object.keys(data).forEach(function(key) {
-        var article = data[key];
-        article.date = new Date(article.time * 1000);
-        article.category = dict[catGen(Math.random())];
-        article.size = article["post_content:"].length;
-        articleIndex.push(article);
+      d3.tsv("/static/data/en.txt", function(words) {
+        wordFrequency = {};
+        words.forEach(function(word) {
+          wordFrequency[word.word] = word.cnt;
+        });
+
+        console.log("data", data);
+        var dict = [
+          "cat",
+          "dog",
+          "bat",
+          "boy",
+          "frog"
+        ];
+        var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
+
+        var tokenRegex = /\w{5,}/g;
+        var categories = {};
+
+        Object.keys(data).forEach(function(key) {
+          var article = data[key];
+
+          var titleWords = article["post_content:"].match(tokenRegex) || [];
+          var categoryScore = Infinity;
+          article.category = "";
+
+          titleWords.forEach(function(word) {
+
+            word = word.toLowerCase();
+            if (word[word.length - 1] == "s") word = word.substring(0, word.length - 1);
+
+            var score = wordFrequency[word] || -word.length;
+            if (score < categoryScore) {
+              article.category = word;
+              categoryScore = score;
+            }
+          });
+
+          categories[article.category] = categories[article.category] ? categories[article.category] + 1 : 1;
+
+          article.date = new Date(article.time * 1000);
+          article.category = dict[catGen(Math.random())];
+          article.size = article["post_content:"].length;
+          articleIndex.push(article);
+        });
+
+        console.log("categories", categories);
+
+        construct();
+        update();
+        force.start();
       });
-
-      construct();
-      update();
-//      force.start();
     });
 
 
@@ -193,12 +225,17 @@ function Diagram() {
       .append("g");
 
     enters
+      .append("title")
+      .text(function(d) {return d.post_title});
+
+    enters
       .classed("article", true)
       .attr("fill", function(d) {
         return color(d.category)
       })
       .append("circle")
       .attr("r", function(d) {return area(d.size)});
+    
 
     force.on("tick", function(e) {
 

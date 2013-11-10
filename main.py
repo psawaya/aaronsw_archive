@@ -20,16 +20,15 @@ def api_index():
     min_time = request.args.get('min_time',-1)
     max_time = request.args.get('max_time',-1)
     for post_title, post in blog_posts.iteritems():
-        print post.keys()
         if min_time != -1 and post['time'] < min_time:
             continue
         if max_time != -1 and post['time'] > max_time:
             continue
-        print post
         blog_index[post_title] = {
             "post_title": post['post_title'],
             "time": post['time'],
             "postid": post['postid'],
+            "tags": post['tags'],
             "post_len": len(post['post_content'])
         }
     return jsonify(blog_index)

@@ -105,7 +105,7 @@ function Diagram() {
         Object.keys(data).forEach(function(key) {
           var article = data[key];
 
-          var titleWords = article["post_content:"].match(tokenRegex) || [];
+          var titleWords = article["post_content"].match(tokenRegex) || [];
           var categoryScore = Infinity;
           article.category = "";
 
@@ -125,7 +125,7 @@ function Diagram() {
 
           article.date = new Date(article.time * 1000);
           article.category = dict[catGen(Math.random())];
-          article.size = article["post_content:"].length;
+          article.size = article["post_content"].length;
           articleIndex.push(article);
         });
 

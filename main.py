@@ -29,7 +29,9 @@ def api_index():
             "time": post['time'],
             "postid": post['postid'],
             "tags": post['tags'],
-            "post_len": len(post['post_content'])
+            "post_len": len(post['post_content']),
+            "internal_links": post['internal_links'],
+            "external_links": post['external_links']
         }
     return jsonify(blog_index)
 

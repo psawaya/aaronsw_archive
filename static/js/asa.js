@@ -17,7 +17,7 @@ function Diagram() {
   // factors
 
   var dateFactor = 0;
-  var categoryFactor = CATEGORY_FACTOR;
+  var categoryFactor = 0; //CATEGORY_FACTOR;
 
   // padding and margin vaues
 
@@ -68,7 +68,7 @@ function Diagram() {
   var links = [];
   var force = d3.layout.force()
     .charge(CHARGE)
-    .linkStrength(0);
+    .linkStrength(LINK_STRENGHT);
 
   var catGroups;
 
@@ -137,7 +137,8 @@ function Diagram() {
           articleIndex[article.postid] = article;
         });
 
-        articles.forEach(function(article) {
+        var docFilter = function(d) {return d.post_title != "The Archives"};
+        articles.filter(docFilter).forEach(function(article) {
           article.internal_links.forEach(function(link) {
             var tokens = link.split("/");
             if (tokens.length > 0) {
@@ -239,7 +240,7 @@ function Diagram() {
         var ls = force.linkStrength();
         console.log("ls", ls);
         force.linkStrength(ls ? 0 : LINK_STRENGHT);
-        force.resume();
+        force.start();
       });
         
    

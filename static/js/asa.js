@@ -123,22 +123,17 @@ function Diagram() {
         ];
         var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
 
-        var tokenRegex = /\w{5,}/g;
-        var categories = {};
+        // extract the article data
 
         Object.keys(data).forEach(function(key) {
           var article = data[key];
-          if (article.tags)
-            console.log("article.tags", article.tags);
-
           article.date = new Date(article.time * 1000);
           article.category = dict[catGen(Math.random())];
-          //article.tags.length > 0 ? article.tags[0] : "misc";
-          article.size = article["post_content"].length;
+          article.category = article.tags.length > 0 ? article.tags[0] : "misc.";
+          article.size = article.post_content.length;
           articleIndex.push(article);
         });
 
-        links = [];
         var ra = d3.scale.linear().rangeRound([0, articleIndex.length - 1]);
         for (var i = 0; i < 30; ++i) {
           var a1 = articleIndex[ra(Math.random())];

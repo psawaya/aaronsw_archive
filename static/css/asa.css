@@ -32,9 +32,9 @@ body {
 
 .category {
   text-transform: capitalize;
-  font-size: 60px;
+  font-size: 40px;
   font-weight: bold;
-  opacity: 0.6;
+  opacity: 0.4;
   fill: #000;
 }
  

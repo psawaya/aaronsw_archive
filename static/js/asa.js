@@ -17,7 +17,7 @@ function Diagram() {
   // factors
 
   var dateFactor = 0;
-  var categoryFactor = 0; //CATEGORY_FACTOR;
+  var categoryFactor = 0;
 
   // padding and margin vaues
 
@@ -68,7 +68,7 @@ function Diagram() {
   var links = [];
   var force = d3.layout.force()
     .charge(CHARGE)
-    .linkStrength(LINK_STRENGHT);
+    .linkStrength(0);
 
   var catGroups;
 
@@ -123,7 +123,7 @@ function Diagram() {
           "orange",
           "bear",
         ];
-        var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
+        var catGen = d3.scale.pow().exponent(4).domain([0, 1]).rangeRound([0, dict.length - 1]);
 
         // extract the article data
 

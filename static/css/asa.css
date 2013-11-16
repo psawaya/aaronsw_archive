@@ -25,7 +25,6 @@ body {
   cursor: pointer;
 }
 
-
 .article {
   opacity: 0.5;
 }
@@ -39,8 +38,8 @@ body {
 }
  
 .link {
-  opacity: 0.1;
+  opacity: 0.05;
   stroke: black;
   stroke-linecap: round;
-  stroke-width: 4px;
+  stroke-width: 6px;
 }

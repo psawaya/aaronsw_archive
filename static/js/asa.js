@@ -9,19 +9,20 @@ function Diagram() {
   var MAX_RADIUS = 20;
   var DATE_FACTOR = 0.1;
   var SIZE_FACTOR = 0;
-  var CATEGORY_FACTOR = 0.2;
-  var COLLISION_FACTOR = 0.05;
-  var CHARGE = -40;
-  var LINK_STRENGHT = 0.09;
+  var CATEGORY_FACTOR = 0.3;
+  var COLLISION_FACTOR = 0.01;
+  var CHARGE = -50;
+  var LINK_STRENGHT = 0.5;
 
   // factors
 
   var dateFactor = 0;
+  var categoryFactor = 0;
 
   // padding and margin vaues
 
   var padding = {top: 10, right: 10, bottom: 10, left: 10};
-  var margin = {top: 25, right: 50, bottom: 20, left: 25};
+  var margin = {top: 10, right: 10, bottom: 20, left: 10};
 
   // svg region
 
@@ -62,11 +63,12 @@ function Diagram() {
 
   // the article index
 
-  var articleIndex = [];
+  var articleIndex = {};
+  var articles = [];
   var links = [];
   var force = d3.layout.force()
     .charge(CHARGE)
-    .linkStrength(LINK_STRENGHT);
+    .linkStrength(0);
 
   var catGroups;
 
@@ -121,7 +123,7 @@ function Diagram() {
           "orange",
           "bear",
         ];
-        var catGen = d3.scale.linear().domain([0, 1]).rangeRound([0, dict.length - 1]);
+        var catGen = d3.scale.pow().exponent(4).domain([0, 1]).rangeRound([0, dict.length - 1]);
 
         // extract the article data
 
@@ -129,19 +131,36 @@ function Diagram() {
           var article = data[key];
           article.date = new Date(article.time * 1000);
           article.category = dict[catGen(Math.random())];
-          article.category = article.tags.length > 0 ? article.tags[0] : "misc.";
+//          article.category = article.tags.length > 0 ? article.tags[0] : "misc.";
           article.size = article.post_content.length;
-          articleIndex.push(article);
+          articles.push(article);
+          articleIndex[article.postid] = article;
         });
 
-        var ra = d3.scale.linear().rangeRound([0, articleIndex.length - 1]);
-        for (var i = 0; i < 30; ++i) {
-          var a1 = articleIndex[ra(Math.random())];
-          var a2 = articleIndex[ra(Math.random())];
-          if (a1 != a2) {
-            links.push({source: a1, target: a2});
-          }
-        }
+        var docFilter = function(d) {return d.post_title != "The Archives"};
+        articles.filter(docFilter).forEach(function(article) {
+          article.internal_links.forEach(function(link) {
+            var tokens = link.split("/");
+            if (tokens.length > 0) {
+              var id = tokens[tokens.length - 1];
+              var mention = articleIndex[id];
+              if (mention) {
+                links.push({source: article, target: mention});
+              }
+            }
+          });
+        });
+
+        // links = [];
+
+        // var ra = d3.scale.linear().rangeRound([0, articleIndex.length - 1]);
+        // for (var i = 0; i < 30; ++i) {
+        //   var a1 = articleIndex[ra(Math.random())];
+        //   var a2 = articleIndex[ra(Math.random())];
+        //   if (a1 != a2) {
+        //     links.push({source: a1, target: a2});
+        //   }
+        // }
 
         construct();
         update();
@@ -181,9 +200,9 @@ function Diagram() {
   // construt ontime chart specific elements
 
   function construct() {
-    x.domain(d3.extent(articleIndex, function(d) {return d.date}));
-    y.domain(d3.extent(articleIndex, function(d) {return d.size}));
-    area.domain(d3.extent(articleIndex, function(d) {return d.size}));
+    x.domain(d3.extent(articles, function(d) {return d.date}));
+    y.domain(d3.extent(articles, function(d) {return d.size}));
+    area.domain(d3.extent(articles, function(d) {return d.size}));
     
 
     dataArea.append("g")
@@ -195,17 +214,17 @@ function Diagram() {
       })
       .call(xAxis);
 
-    dataArea.append("g")
-      .attr("class", "y axis")
-      .attr("transform", "translate(" + width + ",0)")
-      .call(yAxis);
+    // dataArea.append("g")
+    //   .attr("class", "y axis")
+    //   .attr("transform", "translate(" + width + ",0)")
+    //   .call(yAxis);
 
-    force.nodes(articleIndex);
+    force.nodes(articles);
     force.links(links);
 
     catGroups = d3.nest()
       .key(function(d) {return d.category;})
-      .map(articleIndex, d3.map);
+      .map(articles, d3.map);
 
     console.log("catGroups", catGroups);
   };
@@ -216,10 +235,17 @@ function Diagram() {
       .data(links)
       .enter()
       .append("line")
-      .classed("link", true);
+      .classed("link", true)
+      .on("click", function(d) {
+        var ls = force.linkStrength();
+        console.log("ls", ls);
+        force.linkStrength(ls ? 0 : LINK_STRENGHT);
+        force.start();
+      });
+        
    
     var enters = nodeLayer.selectAll("g.article")
-      .data(articleIndex)
+      .data(articles)
       .enter()
       .append("g");
 
@@ -246,7 +272,11 @@ function Diagram() {
       .append("text")
       .classed("category", true)
       .attr("text-anchor", "middle")
-      .text(function(d) {return d.name});
+      .text(function(d) {return d.name})
+      .on("click", function(d) {
+        categoryFactor = categoryFactor ? 0 : CATEGORY_FACTOR;
+        force.resume();
+      });
     
     force.on("tick", function(e) {
 
@@ -254,7 +284,7 @@ function Diagram() {
       var COLLISION = true;
 
       if (CLUSTER) {
-        var k = CATEGORY_FACTOR * e.alpha;
+        var k = categoryFactor * e.alpha;
         categoryData.forEach(function(category) {
           var members = catGroups[category.name];
           var cx = 0;
@@ -277,13 +307,13 @@ function Diagram() {
       }
 
       if (COLLISION) {
-        var q = d3.geom.quadtree(articleIndex);
+        var q = d3.geom.quadtree(articles);
 
         var i = 0;
-        var n = articleIndex.length;
+        var n = articles.length;
 
         while (++i < n) {
-          q.visit(collide(articleIndex[i]));
+          q.visit(collide(articles[i]));
         }
       }
 

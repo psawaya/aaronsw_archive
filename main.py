@@ -17,8 +17,8 @@ def api_posts():
 @app.route('/api/index')
 def api_index():
     blog_index = {}
-    min_time = request.args.get('min_time',-1)
-    max_time = request.args.get('max_time',-1)
+    min_time = float(request.args.get('min_time',-1))
+    max_time = float(request.args.get('max_time',-1))
     for post_title, post in blog_posts.iteritems():
         if min_time != -1 and post['time'] < min_time:
             continue

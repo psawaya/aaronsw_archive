@@ -247,7 +247,12 @@ function Diagram() {
     var enters = nodeLayer.selectAll("g.article")
       .data(articles)
       .enter()
-      .append("g");
+      .append("g")
+      .on("click", function(d) {
+        $('#article_viewer').html(markdown.toHTML(d.post_content));
+        $('#article_viewer').show();
+        // console.log(d);
+      });
 
     enters
       .append("title")

@@ -52,11 +52,29 @@ body {
 }
 
 #article_viewer {
-  height:100%;
+  background-color:white;
+  font-family:helvetica, sans-serif;
+  font-size: 14pt;
+  opacity: 0.8;
+  height: 100%;
+  width:40%;
   display:none;
   position: absolute;
   left:0;
   top:0;
+  padding:10px;
+  overflow: scroll;
+}
+
+#article_viewer p {
+  margin-bottom: 0px; }
+#article_viewer p + p {
+  text-indent: 1.5em;
+  margin-top: 10px; }
+
+
+#article_viewer:hover {
+  opacity: 1.0;
 }
 
 .category {

@@ -53,6 +53,7 @@ body {
 }
 
 #article_viewer {
+  z-index: 1;
   background-color:white;
   font-family:helvetica, sans-serif;
   font-size: 14pt;
@@ -72,7 +73,6 @@ body {
 #article_viewer p + p {
   text-indent: 1.5em;
   margin-top: 10px; }
-
 
 #article_viewer:hover {
   opacity: 1.0;

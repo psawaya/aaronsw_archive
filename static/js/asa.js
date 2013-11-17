@@ -197,6 +197,59 @@ function Diagram() {
     force.size([width, height]);
   }
 
+  function clusterByDate() {
+    if (dateFactor == 0) {
+      dateFactor = DATE_FACTOR;
+      d3.selectAll(".axis")
+        .transition()
+        .attr("opacity", 1);
+    }
+    else {
+      dateFactor = 0;
+      d3.selectAll(".axis")
+        .transition()
+        .attr("opacity", 0);
+    }
+    
+    force.resume();
+  }
+
+  function clusterByLink() {
+
+    if (force.linkStrength() == 0) {
+      force.linkStrength(LINK_STRENGHT);
+      d3.selectAll(".link")
+        .transition()
+        .attr("opacity", 0.2);
+    }
+    else {
+      force.linkStrength(0);
+      d3.selectAll(".link")
+        .transition()
+        .attr("opacity", 0);
+    }
+
+    force.start();
+  }
+
+  function clusterByCategory() {
+    if (categoryFactor == 0) {
+      categoryFactor = CATEGORY_FACTOR;
+      d3.selectAll(".category")
+        .transition()
+        .attr("opacity", 0.5);
+    }
+    else {
+      categoryFactor = 0;
+      d3.selectAll(".category")
+        .transition()
+        .attr("opacity", 0);
+    }
+
+    force.resume();
+  }
+
+
   // construt ontime chart specific elements
 
   function construct() {
@@ -208,16 +261,8 @@ function Diagram() {
     dataArea.append("g")
       .attr("class", "x axis")
       .attr("transform", "translate(0," + height + ")")
-      .on("click", function(d) {
-        dateFactor = (dateFactor) ? 0 : DATE_FACTOR;
-        force.resume();
-      })
+      .attr("opacity", 0)
       .call(xAxis);
-
-    // dataArea.append("g")
-    //   .attr("class", "y axis")
-    //   .attr("transform", "translate(" + width + ",0)")
-    //   .call(yAxis);
 
     force.nodes(articles);
     force.links(links);
@@ -225,8 +270,21 @@ function Diagram() {
     catGroups = d3.nest()
       .key(function(d) {return d.category;})
       .map(articles, d3.map);
-
-    console.log("catGroups", catGroups);
+    
+    $(".groupBy").on("click", function(e) {
+      $(e.target.parentElement).toggleClass("active");
+      switch($(e.target).attr("id")) {
+      case "date":
+        clusterByDate();
+        break;
+      case "link":
+        clusterByLink();
+        break;
+      case "category":
+        clusterByCategory();
+        break;
+      }
+    });
   };
 
   function update() {
@@ -235,13 +293,8 @@ function Diagram() {
       .data(links)
       .enter()
       .append("line")
-      .classed("link", true)
-      .on("click", function(d) {
-        var ls = force.linkStrength();
-        console.log("ls", ls);
-        force.linkStrength(ls ? 0 : LINK_STRENGHT);
-        force.start();
-      });
+      .attr("opacity", 0)
+      .classed("link", true);
         
    
     var enters = nodeLayer.selectAll("g.article")
@@ -251,7 +304,6 @@ function Diagram() {
       .on("click", function(d) {
         $('#article_viewer').html(markdown.toHTML(d.post_content));
         $('#article_viewer').show();
-        // console.log(d);
       });
 
     enters
@@ -276,12 +328,9 @@ function Diagram() {
       .enter()
       .append("text")
       .classed("category", true)
+      .attr("opacity", 0)
       .attr("text-anchor", "middle")
-      .text(function(d) {return d.name})
-      .on("click", function(d) {
-        categoryFactor = categoryFactor ? 0 : CATEGORY_FACTOR;
-        force.resume();
-      });
+      .text(function(d) {return d.name});
     
     force.on("tick", function(e) {
 

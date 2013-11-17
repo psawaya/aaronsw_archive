@@ -19,18 +19,16 @@ body {
 }
 
 #control_panel {
-  position: absolute; 
+  position: absolute;
   float: right;
   top: 0px;
   right: 0px;
   margin: 10px;
-  padding: 10px;
+  padding: 12px;
   border:2px solid;
   border-radius:5px;
   background: white;
   border-color: #ccc;
-  width: 200px;
-  height: 200px;
 }
  
 .marginArea,.dataArea {
@@ -64,12 +62,10 @@ body {
   text-transform: capitalize;
   font-size: 40px;
   font-weight: bold;
-  opacity: 0.4;
   fill: #000;
 }
  
 .link {
-  opacity: 0.05;
   stroke: black;
   stroke-linecap: round;
   stroke-width: 6px;
